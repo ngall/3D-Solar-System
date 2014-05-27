@@ -3,8 +3,5 @@ var planet = {
 	color: '0xFFFFFF',
 	radius: 0,
 	mass: 0,
-	density: 0,
-	render: function() {
-
-	}
+	density: 0
 };
