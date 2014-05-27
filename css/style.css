@@ -9,11 +9,20 @@ body {
 	bottom:0;
 	left:0;
 	right:0;
-	z-index:5;
+	z-index:1;
 	height:100%;
 	width:100%;
 	background:#ddd;
 	background: -moz-linear-gradient(white, #bbb);
 	background: -webkit-gradient(linear, 0% 100% 0% 0%, from(#bbb), to(white));
 	background: -webkit-linear-gradient(white, #bbb);
+}
+
+button {
+	position: absolute;
+	z-index:2;
+	padding : 3px;
+	margin:5px;
+	text-align: center;
+	width:100px;
 }
