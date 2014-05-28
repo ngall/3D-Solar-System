@@ -4,24 +4,23 @@ var $container = $('#container');
 var $button = $('#button');
 var renderer = new THREE.WebGLRenderer( { alpha: true, antialias: false } );
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 1000);
-var animated = true;
+var camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 10000);
 var controls, stats;
+var target = "earth";
+
+var earthDistance = 20;
+var earthRadius = 1;
 
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 $container.append(renderer.domElement);
 
 
-controls = new THREE.OrbitControls( camera );
-controls.addEventListener( 'change', render );
-
-
 
 /**
  *  EARTH
  */
-var geometry  = new THREE.SphereGeometry(1, 64, 64);
+var geometry  = new THREE.SphereGeometry(earthRadius, 64, 64);
 
 var material         = new THREE.MeshPhongMaterial();
 material.map         = THREE.ImageUtils.loadTexture('img/earth/earthmap2k.jpg');
@@ -35,9 +34,48 @@ var earth = new THREE.Mesh(geometry, material);
 
 earth.position.x = 0;
 earth.position.y = 0;
-earth.position.z = 0;
+earth.position.z = -earthDistance;
 
 scene.add(earth);
+
+var segmentCount = 64,
+    geometry = new THREE.Geometry(),
+    material = new THREE.LineBasicMaterial({ color: 0x66aaff });
+
+for (var i = 0; i <= segmentCount; i++) {
+    var theta = (i / segmentCount) * Math.PI * 2;
+    geometry.vertices.push(
+        new THREE.Vector3(
+            Math.sin(theta) * (earthRadius + 0.01),
+            0,
+            Math.cos(theta) * (earthRadius + 0.01)));            
+}
+
+var equator = new THREE.Line(geometry, material);
+earth.rotation.x = Math.PI/10
+earth.add( equator );
+
+
+/**
+ * ORBIT
+ */
+var segmentCount = 256,
+    geometry = new THREE.Geometry(),
+    material = new THREE.LineBasicMaterial({ color: 0x666666 });
+
+for (var i = 0; i <= segmentCount; i++) {
+    var theta = (i / segmentCount) * Math.PI * 2;
+    geometry.vertices.push(
+        new THREE.Vector3(
+            Math.sin(theta) * earthDistance,
+            0,
+            Math.cos(theta) * earthDistance));            
+}
+
+var orbit = new THREE.Line(geometry, material);
+//orbit.rotation.x = Math.PI / 2;
+
+scene.add( orbit );
 
 
 /**
@@ -69,18 +107,6 @@ earth.add(clouds);
 /**
  * SUN
  */
-var sun = new THREE.Mesh(
-	new THREE.SphereGeometry(0.98, 16, 16),
-	new THREE.MeshBasicMaterial({
-		color: 0xffdd66,
-		side: THREE.DoubleSide
-	})
-);
-sun.position.z = 20;
-
-//scene.add(sun);
-
-
 uniforms = {
 	time: { type: "f", value: 1.0 },
 	resolution: { type: "v2", value: new THREE.Vector2() },
@@ -100,8 +126,7 @@ material = new THREE.ShaderMaterial( {
 
 } );
 
-mesh = new THREE.Mesh(new THREE.SphereGeometry(2, 32, 32), material);
-mesh.position.z = 20;
+var sun = new THREE.Mesh(new THREE.SphereGeometry(2, 32, 32), material);
 
 var customMaterialAtmosphere = new THREE.ShaderMaterial({
 	uniforms: {
@@ -112,12 +137,7 @@ var customMaterialAtmosphere = new THREE.ShaderMaterial({
 	fragmentShader: document.getElementById( 'fragmentShaderAtmosphere' ).textContent
 } ); 
 
-
-
-
-
-scene.add(mesh);
-
+scene.add(sun);
 
 
 
@@ -125,7 +145,7 @@ scene.add(mesh);
  * LIGHTS
  */
 var light = new THREE.PointLight( 0xffffee, 0.7 );
-light.position.set(0,0,20);
+light.position.set(0,0,0);
 scene.add(light);
 scene.add(new THREE.AmbientLight(0x111111));
 
@@ -134,7 +154,7 @@ scene.add(new THREE.AmbientLight(0x111111));
 /**
  * STARFIELD
  */
-var geometry  = new THREE.SphereGeometry(128, 16, 16);
+var geometry  = new THREE.SphereGeometry(1000, 16, 16);
 var material  = new THREE.MeshBasicMaterial();
 material.map  = THREE.ImageUtils.loadTexture('img/starfield.png');
 material.side = THREE.BackSide;
@@ -147,7 +167,7 @@ scene.add(space);
  */
 camera.position.x = 5;
 camera.position.y = 5;
-camera.position.z = 30;
+camera.position.z = 10;
 camera.lookAt(earth.position);
 scene.add(camera);
 
@@ -176,7 +196,15 @@ composer.addPass( renderModel );
 composer.addPass( effectBloom );
 
 
+/**
+ * CONTROLS
+ */
+controls = new THREE.OrbitControls( camera );
+controls.addEventListener( 'change', render );
+controls.center.set(earth.position.x, earth.position.y, earth.position.z);
 
+
+var theta = 0.001;
 animate();
 
 
@@ -213,12 +241,14 @@ function animate() {
 
 	uniforms.time.value -= 0.015;
 
-    if (animated) {
-		earth.rotation.y += 0.001 ;
-		clouds.rotation.y -= 0.0002 ; 
-	} else {
-		return;
-	}
+	earth.rotation.y += 0.01 ;
+	clouds.rotation.y -= 0.0005 ;
+	
+	earth.position.x = earth.position.x * Math.cos(theta) + earth.position.z * Math.sin(theta);
+	earth.position.z = earth.position.z * Math.cos(theta) - earth.position.x * Math.sin(theta);
+	
+	if (target == "earth")
+		controls.center.set(earth.position.x, earth.position.y, earth.position.z);
 
     render();
     controls.update();
@@ -230,11 +260,13 @@ function animate() {
  * BUTTON
  */
 $button.click(function() {
-	animated = !animated;
-	if (animated) {
-		buttonTxt = 'Pause';
+	if (target == "sun") {
+		controls.center.set(earth.position.x, earth.position.y, earth.position.z);
+		$button.html('Centrer sur le Soleil');
+		target = "earth";
 	} else {
-		buttonTxt = 'Play';		
+		controls.center.set(sun.position.x, sun.position.y, sun.position.z);
+		$button.html('Centrer sur la Terre');
+		target = "sun";
 	}
-	$button.html(buttonTxt);
 });
