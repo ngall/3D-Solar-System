@@ -1,4 +1,4 @@
-if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+if (!Detector.webgl) {Detector.addGetWebGLMessage(); }
 
 var $container = $('#container');
 var $button = $('#button');
@@ -11,12 +11,15 @@ var nbTours, inc = 0;
 var target = "earth";
 
 
+var sunRadius = 2.0;
+
 var earthRadius = 1.0;
 var earthDistance = 20;
-var earthDaySpeed = Math.PI/240; 
+var earthDaySpeed = Math.PI/200; 
 var earthYearSpeed = earthDaySpeed/365.25; 
 
-var sunRadius = 2.0;
+var moonRadius = 0.3;
+var moonDistance = 4;
 
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -57,14 +60,14 @@ for (var i = 0; i <= segmentCount; i++) {
             0,
             Math.cos(theta) * (earthRadius + 0.01)));            
 }
+earth.rotation.x = -(Math.PI/180)*23.5; // Earth inclination
 
 var equator = new THREE.Line(geometry, material);
-earth.rotation.x = (Math.PI/180)*23.5;
 earth.add( equator );
 
 
 /**
- * ORBIT
+ * EARTH ORBIT
  */
 var segmentCount = 256,
     geometry = new THREE.Geometry(),
@@ -79,10 +82,10 @@ for (var i = 0; i <= segmentCount; i++) {
             Math.cos(theta) * earthDistance));            
 }
 
-var orbit = new THREE.Line(geometry, material);
+var eOrbit = new THREE.Line(geometry, material);
 //orbit.rotation.x = Math.PI / 2;
 
-scene.add( orbit );
+scene.add( eOrbit );
 
 
 /**
@@ -109,6 +112,46 @@ var clouds = new THREE.Mesh(
 	})
 );
 earth.add(clouds);
+
+
+/**
+ * MOON
+ */
+var geometry  = new THREE.SphereGeometry(moonRadius, 64, 64);
+
+var material         = new THREE.MeshPhongMaterial();
+material.map         = THREE.ImageUtils.loadTexture('img/moon/moonmap1k.jpg');
+material.bumpMap     = THREE.ImageUtils.loadTexture('img/moon/moonbump1k.jpg');
+material.side        = THREE.DoubleSide;
+material.bumpScale   = 0.06;
+
+var moon = new THREE.Mesh(geometry, material);
+
+moon.position.x = 0;
+moon.position.y = 0;
+moon.position.z = -moonDistance;
+moon.rotation.x = -2*((Math.PI/180)*23.5);
+earth.add(moon);
+
+/**
+ * MOON ORBIT
+ */
+var segmentCount = 256,
+    geometry = new THREE.Geometry(),
+    material = new THREE.LineBasicMaterial({ color: 0x333333 });
+
+for (var i = 0; i <= segmentCount; i++) {
+    var theta = (i / segmentCount) * Math.PI * 2;
+    geometry.vertices.push(
+        new THREE.Vector3(
+            Math.sin(theta) * moonDistance,
+            0,
+            Math.cos(theta) * moonDistance));            
+}
+
+var mOrbit = new THREE.Line(geometry, material);
+
+earth.add( mOrbit );
 
 
 /**
@@ -172,9 +215,9 @@ scene.add(space);
 /**
  * CAMERA
  */
-camera.position.x = 0;
-camera.position.y = 0;
-camera.position.z = 40;
+camera.position.x = 5;
+camera.position.y = 5;
+camera.position.z = 5;
 camera.lookAt(earth.position);
 scene.add(camera);
 
